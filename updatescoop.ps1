@@ -15,7 +15,7 @@ $manifest = [ordered]@{
     url = $asset
     hash = $hash
     extract_dir = ''
-    bin = @(@('cli-GPT-5.6-Luna-csharp-win-x64.exe', 'cli-GPT-5.6-Luna-csharp'))
+    bin = @((,@('cli-GPT-5.6-Luna-csharp-win-x64.exe', 'cli-GPT-5.6-Luna-csharp')))
   }}
 } | ConvertTo-Json -Depth 5
 Set-Content -Path 'cli-GPT-5.6-Luna-csharp.json' -Value $manifest -Encoding utf8
