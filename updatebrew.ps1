@@ -11,7 +11,7 @@ $assets = @{
 }
 $hashes = @{}
 foreach ($key in $assets.Keys) {
-  $file = Join-Path $env:TEMP "$key-$Version.tar.gz"
+  $file = Join-Path ([IO.Path]::GetTempPath()) "$key-$Version.tar.gz"
   Invoke-WebRequest -Uri $assets[$key] -OutFile $file
   $hashes[$key] = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
 }
