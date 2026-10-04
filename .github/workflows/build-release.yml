@@ -1,0 +1,84 @@
+name: Build and Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: ubuntu-latest
+            rid: linux-arm64
+            archive: tar.gz
+          - os: macos-latest
+            rid: osx-x64
+            archive: tar.gz
+          - os: macos-latest
+            rid: osx-arm64
+            archive: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet publish src/cli-GPT-5.6-Luna-csharp/cli-GPT-5.6-Luna-csharp.csproj \
+            --configuration Release --runtime "${{ matrix.rid }}" --self-contained true \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:Version="$VERSION" --output publish
+          if [[ "${{ matrix.archive }}" == "tar.gz" ]]; then
+            mv publish/cli-GPT-5.6-Luna-csharp publish/cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}
+            tar -czf cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}.tar.gz -C publish cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}
+          else
+            mv publish/cli-GPT-5.6-Luna-csharp.exe publish/cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}.exe
+            cd publish
+            7z a ../cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}.zip cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}.exe
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}
+          path: cli-GPT-5.6-Luna-csharp-${{ matrix.rid }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+      - name: Switch to main branch
+        run: |
+          git switch main
+          git pull --rebase origin main
+      - name: Update package manifests
+        shell: pwsh
+        run: |
+          ./updatescoop.ps1 -Version $env:GITHUB_REF_NAME.Substring(1)
+          ./updatebrew.ps1 -Version $env:GITHUB_REF_NAME.Substring(1)
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: update package manifests to ${{ github.ref_name }}"
+          file_pattern: "cli-GPT-5.6-Luna-csharp.json Formula/cli-GPT-5.6-Luna-csharp.rb"
