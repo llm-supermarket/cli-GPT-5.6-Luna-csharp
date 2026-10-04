@@ -69,7 +69,10 @@ public sealed class RcloneCipherTests
     private static async Task<ProcessResult> RunCliAsync(string arguments, string? standardInput = null)
     {
         var root = FindRepositoryRoot();
-        var project = Path.Combine(root, "src", "cli-GPT-5.6-Luna-csharp", "bin", "Debug", "net10.0", "cli-GPT-5.6-Luna-csharp.dll");
+        var project = new[] { "Release", "Debug" }
+            .Select(configuration => Path.Combine(root, "src", "cli-GPT-5.6-Luna-csharp", "bin", configuration, "net10.0", "cli-GPT-5.6-Luna-csharp.dll"))
+            .FirstOrDefault(File.Exists)
+            ?? throw new FileNotFoundException("Built CLI assembly not found.");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo("dotnet", $"\"{project}\" {arguments}")
