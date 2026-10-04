@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $repo = 'llm-supermarket/cli-GPT-5.6-Luna-csharp'
 $base = "https://github.com/$repo/releases/download/v$Version"
 $asset = "$base/cli-GPT-5.6-Luna-csharp-win-x64.zip"
-$zip = Join-Path $env:TEMP "cli-GPT-5.6-Luna-csharp-$Version.zip"
+$zip = Join-Path ([IO.Path]::GetTempPath()) "cli-GPT-5.6-Luna-csharp-$Version.zip"
 Invoke-WebRequest -Uri $asset -OutFile $zip
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 $manifest = [ordered]@{
